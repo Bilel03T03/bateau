@@ -67,4 +67,13 @@ Stack : React 19, TypeScript, Zustand, Vite (un seul fichier HTML autonome), SDK
 
 ### Déploiement GitHub Pages
 
-Le workflow `.github/workflows/pages.yml` construit et publie la web app à chaque push sur `main`. Dans GitHub : **Settings → Pages → Source : GitHub Actions**. L'app sera alors disponible sur `https://<utilisateur>.github.io/bateau/`.
+Le workflow `.github/workflows/pages.yml` lance les tests et le build sur chaque pull request, et publie la web app à chaque push sur `main`.
+
+Réglages à faire une seule fois dans GitHub :
+
+1. Créer la branche `main` et fusionner cette branche dedans (pull request).
+2. **Settings → General → Default branch** : choisir `main`.
+3. **Settings → Pages → Build and deployment → Source** : choisir **GitHub Actions**.
+4. **Actions → « Vérifier et déployer sur GitHub Pages » → Run workflow** sur `main`.
+
+L'app est alors disponible sur `https://bilel03t03.github.io/bateau/`, installable sur le téléphone (Partager → « Sur l'écran d'accueil » sur iPhone, menu ⋮ → « Installer l'application » sur Android).
