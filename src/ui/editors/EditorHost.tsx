@@ -3,6 +3,7 @@ import { QuickAddSheet } from "../layout/QuickAdd";
 import { useUI } from "../uiStore";
 import { EventEditor } from "./EventEditor";
 import { ConflictSheet, DayPlanSheet, MoreSheet, WeekPlanSheet } from "./PlanSheets";
+import { SetupSheet } from "./Setup";
 import { ExamEditor, GoalEditor, RecurringEditor, ReminderEditor, SleepEditor, SubjectEditor } from "./SimpleEditors";
 import { TaskEditor } from "./TaskEditor";
 
@@ -34,7 +35,9 @@ export function EditorHost() {
     case "weekplan":
       return <WeekPlanSheet />;
     case "timetable":
-      return <TimetableImport />;
+      return <TimetableImport returnToSetup={editor.returnToSetup} />;
+    case "setup":
+      return <SetupSheet step={editor.step} />;
     case "quickadd":
       return <QuickAddSheet />;
     case "more":

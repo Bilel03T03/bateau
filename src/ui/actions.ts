@@ -7,7 +7,9 @@ import { defaultHoursFor } from "../core/revisions";
 import { fmtTime, nowMinutes, relativeDay, todayISO } from "../lib/date";
 import { CATEGORIES, uid } from "../lib/meta";
 import type { CalEvent, Exam, Task } from "../lib/types";
-import { applyPlan, get, toast, upsert } from "../store/store";
+import { applyPlan, get, setBlockStatus, toast, upsert } from "../store/store";
+import type { BlockStatus } from "../lib/types";
+import { open } from "./uiStore";
 
 export function createFromParsed(p: ParsedEntry): string {
   const today = todayISO();
@@ -77,4 +79,21 @@ export function applyProposal(res: ReturnType<typeof proposeWeek>, message: stri
 
 export function notify(text: string) {
   toast(text);
+}
+
+/**
+ * Marque une séance ou un bloc comme fait / manqué. Une séance manquée n'est
+ * pas perdue : on propose tout de suite de la replacer dans la semaine.
+ */
+export function markBlock(key: string, status: BlockStatus) {
+  const ev = get().events[key];
+  setBlockStatus(key, status);
+  if (!ev) return;
+  if (status === "fait") {
+    toast(ev.kind === "sport" ? `Bravo, ${ev.title} comptée dans ta semaine 💪` : `« ${ev.title} » : c'est noté`);
+  } else if (status === "manque") {
+    toast(ev.kind === "sport" ? `${ev.title} manquée : on la replace ?` : `Bloc manqué : on replace ce temps de travail ?`, {
+      action: { label: "Replacer", run: () => open({ type: "weekplan" }) },
+    });
+  }
 }

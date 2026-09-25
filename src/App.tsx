@@ -170,8 +170,18 @@ export function App() {
       <Assistant />
       <ConfirmHost />
       {toast && (
-        <div className="toast" role="status">
+        <div className={`toast ${toast.tone === "warn" ? "warn" : ""}`} role="status">
           <span>{toast.text}</span>
+          {toast.action && (
+            <button
+              onClick={() => {
+                toast.action!.run();
+                useStore.setState({ toast: null });
+              }}
+            >
+              {toast.action.label}
+            </button>
+          )}
           {toast.undo && <button onClick={undo}>Annuler</button>}
         </div>
       )}

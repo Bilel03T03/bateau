@@ -375,9 +375,10 @@ export function rankSportSlots(
       if (frame.wake < Math.min(base.wake, s.wakeTime - 30)) continue;
       let score = target.slots.length ? 20 : 0;
       const neighbours = [addDays(d, -1), addDays(d, 1)];
-      if (Object.values(work.events).some((e) => e.kind === "sport" && e.sport === target.id && neighbours.includes(e.date))) score -= 25;
-      if (occs.some((o) => o.kind === "sport")) score -= 15;
-      score -= (base.loadMin / 60) * 3;
+      // Récupération : pas deux fois le même sport deux jours de suite, ni deux sports le même jour.
+      if (Object.values(work.events).some((e) => e.kind === "sport" && e.sport === target.id && neighbours.includes(e.date) && e.status !== "manque")) score -= 40;
+      if (occs.some((o) => o.kind === "sport")) score -= 30;
+      score -= (base.loadMin / 60) * 2;
       if (nextDeparture !== undefined && nextDeparture < 8 * 60 && end > 20 * 60) score -= 30;
       if (s.freeEvenings.includes(weekday(d)) && start >= 18 * 60) score -= 20;
       if (start >= 17 * 60 + 30 && start <= 19 * 60) score += 6;

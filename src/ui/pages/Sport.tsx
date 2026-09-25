@@ -3,7 +3,8 @@ import { averageSleep, sleepDuration } from "../../core/energy";
 import { monthStats, sportWeek, sportWeekMet } from "../../core/stats";
 import { addDays, DAY_SHORT, fmtDateShort, fmtDayMonth, fmtDuration, fmtMonth, fmtTime, fromHHMM, mondayOf, relativeDay, toHHMM } from "../../lib/date";
 import type { AppData, CalEvent, SportTarget } from "../../lib/types";
-import { setBlockStatus, updateSettings } from "../../store/store";
+import { updateSettings } from "../../store/store";
+import { markBlock } from "../actions";
 import { Bars } from "../components/Bars";
 import { Chip, Empty, Icon, Ring, Seg } from "../components/ui";
 import { useData, useNow } from "../hooks";
@@ -210,10 +211,10 @@ function SessionRow({ e, today }: { e: CalEvent; today: string }) {
         <Chip tone="bad">Manquée</Chip>
       ) : past || e.date === today ? (
         <span className="row" onClick={(ev) => ev.stopPropagation()}>
-          <button className="btn btn-soft btn-xs" onClick={() => setBlockStatus(e.id, "fait")}>
+          <button className="btn btn-soft btn-xs" onClick={() => markBlock(e.id, "fait")}>
             ✓ Faite
           </button>
-          <button className="btn btn-ghost btn-xs" onClick={() => setBlockStatus(e.id, "manque")}>
+          <button className="btn btn-ghost btn-xs" onClick={() => markBlock(e.id, "manque")}>
             ✗
           </button>
         </span>
@@ -224,7 +225,7 @@ function SessionRow({ e, today }: { e: CalEvent; today: string }) {
   );
 }
 
-function SportTargetEditor({ target, data }: { target: SportTarget; data: AppData }) {
+export function SportTargetEditor({ target, data }: { target: SportTarget; data: AppData }) {
   const [day, setDay] = useState(1);
   const [time, setTime] = useState("18:30");
   const save = (changes: Partial<SportTarget>) =>

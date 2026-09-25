@@ -1,9 +1,13 @@
-import { useMemo } from "react";
-import { occurrencesBetween } from "../../core/schedule";
+import { useEffect, useMemo, useState } from "react";
+import { applyShifts, readShifts, totalShiftMinutes, type DayShift } from "../../core/shifts";
+import { occurrencesBetween, weekTypeOf } from "../../core/schedule";
 import { goalProgress } from "../../core/stats";
-import { addDays, fmtDayMonth, fmtHours, mondayOf } from "../../lib/date";
-import type { TaskType } from "../../lib/types";
+import { addDays, DAY_NAMES, fmtDayMonth, fmtDuration, fmtHours, mondayOf, weekday } from "../../lib/date";
+import { WEEK_TYPES } from "../../lib/meta";
+import type { AppData, TaskType } from "../../lib/types";
+import { commit, get, repairAround } from "../../store/store";
 import { OccRow, TaskRow } from "../components/rows";
+import { ShiftRows } from "../components/ShiftRows";
 import { Empty, Icon, Progress } from "../components/ui";
 import { useData, useNow } from "../hooks";
 import { open } from "../uiStore";
@@ -75,9 +79,11 @@ export function Work() {
         </div>
 
         <div className="stack">
+          <WeekShifts data={data} today={today} />
+
           <section className="panel">
             <div className="panel-head">
-              <h2>Horaires · semaines Auchan</h2>
+              <h2>Horaires habituels · semaines Auchan</h2>
               <button
                 className="btn btn-sm"
                 onClick={() =>
@@ -92,7 +98,7 @@ export function Work() {
             </div>
             <RecurringList data={data} category="auchan" weekType="entreprise" />
             <p className="tiny faint">
-              Tes horaires changent une semaine ? Déplace ou modifie le créneau directement dans le Planning : seule cette date change, et le reste de ta semaine s'adapte.
+              Ils se répètent à chaque semaine Auchan. Pour une semaine différente, utilise « Horaires de la semaine » ci-dessus.
             </p>
           </section>
 
@@ -142,5 +148,69 @@ export function Work() {
         </div>
       </div>
     </>
+  );
+}
+
+/** Horaires d'une semaine précise : quand le planning Auchan change, on le recopie ici en 30 secondes. */
+function WeekShifts({ data, today }: { data: AppData; today: string }) {
+  const firstWorkWeek = useMemo(() => {
+    for (let i = 0; i < 8; i++) {
+      const mon = addDays(mondayOf(today), i * 7);
+      if (weekTypeOf(mon, data.settings.alternance) === "entreprise") return mon;
+    }
+    return mondayOf(today);
+  }, [today, data.settings.alternance]);
+  const [monday, setMonday] = useState(firstWorkWeek);
+  const [rows, setRows] = useState<DayShift[]>(() => readShifts(data, monday));
+  const [dirty, setDirty] = useState(false);
+  useEffect(() => {
+    if (!dirty) setRows(readShifts(data, monday));
+  }, [data, monday, dirty]);
+  const type = weekTypeOf(monday, data.settings.alternance);
+  const change = (i: number, patch: Partial<DayShift>) => {
+    setDirty(true);
+    setRows((r) => r.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  };
+  const move = (n: number) => {
+    setDirty(false);
+    setMonday(addDays(monday, n * 7));
+  };
+  const save = () => {
+    commit(applyShifts(get(), rows), `Horaires de la semaine du ${fmtDayMonth(monday)} enregistrés`);
+    setDirty(false);
+    repairAround();
+  };
+  return (
+    <section className="panel" data-cat="auchan">
+      <div className="panel-head">
+        <h2>Horaires de la semaine</h2>
+        <span className="row">
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={() => move(-1)} aria-label="Semaine précédente">
+            <Icon name="left" size={16} />
+          </button>
+          <span className="small num">du {fmtDayMonth(monday)}</span>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={() => move(1)} aria-label="Semaine suivante">
+            <Icon name="right" size={16} />
+          </button>
+        </span>
+      </div>
+      <p className="tiny faint">
+        {WEEK_TYPES[type].label}. Ton planning change cette semaine ? Modifie les jours ici : seule cette semaine change, et le reste s'adapte.
+      </p>
+      <ShiftRows rows={rows} labels={rows.map((r) => DAY_NAMES[weekday(r.date) - 1])} onChange={change} idPrefix="wk" />
+      <div className="spread">
+        <span className="small muted">Total : {fmtDuration(totalShiftMinutes(rows))}</span>
+        <span className="row">
+          {dirty && (
+            <button className="btn btn-ghost btn-sm" onClick={() => setDirty(false)}>
+              Annuler
+            </button>
+          )}
+          <button className="btn btn-primary btn-sm" onClick={save} disabled={!dirty}>
+            Enregistrer
+          </button>
+        </span>
+      </div>
+    </section>
   );
 }

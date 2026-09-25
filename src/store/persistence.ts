@@ -23,6 +23,24 @@ export interface Persistence {
   save(data: AppData): void;
   flush(): Promise<void>;
   subscribe(cb: (change: RemoteChange) => void): void;
+  /** Échec d'enregistrement (réseau, stockage plein) : message à afficher. */
+  onError(cb: (message: string) => void): void;
+}
+
+/** Prévient au plus une fois toutes les 30 s pour ne pas harceler. */
+function errorNotifier() {
+  let listeners: ((m: string) => void)[] = [];
+  let last = 0;
+  return {
+    add: (cb: (m: string) => void) => {
+      listeners = [...listeners, cb];
+    },
+    emit: (message: string) => {
+      if (Date.now() - last < 30_000) return;
+      last = Date.now();
+      listeners.forEach((l) => l(message));
+    },
+  };
 }
 
 // ---------- Découpage en documents ----------
@@ -90,12 +108,14 @@ export function applyDocs(base: AppData, docs: Record<string, Record<string, unk
 function localPersistence(): Persistence {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let pending: AppData | undefined;
+  const errors = errorNotifier();
   const write = () => {
     if (!pending) return;
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(pending));
     } catch {
-      /* stockage indisponible (navigation privée) : l'app fonctionne quand même */
+      // Navigation privée ou stockage plein : l'app fonctionne, mais rien n'est gardé.
+      errors.emit("Tes modifications ne peuvent pas être enregistrées dans ce navigateur (navigation privée ou stockage plein). Pense à exporter tes données.");
     }
     pending = undefined;
   };
@@ -118,6 +138,7 @@ function localPersistence(): Persistence {
       clearTimeout(timer);
       write();
     },
+    onError: errors.add,
     subscribe(cb) {
       // Un autre onglet a modifié les données.
       window.addEventListener("storage", (e) => {
@@ -198,10 +219,25 @@ function makeDbPersistence(db: ClaudeDb, path: string): Persistence {
     },
   );
 
-  const enqueue = (id: string, op: () => Promise<void>) => {
+  const errors = errorNotifier();
+  let lastData: AppData | undefined;
+  let failures = 0;
+
+  // Une écriture à la fois par document ; en cas d'échec, le document est
+  // oublié pour être réécrit au prochain essai.
+  const enqueue = (id: string, op: () => Promise<void>, onFail: () => void) => {
     const prev = chains.get(id) ?? Promise.resolve();
-    const next = prev.then(op).catch(() => undefined);
-    chains.set(id, next);
+    const next = prev.then(op).then(
+      () => true,
+      () => {
+        onFail();
+        return false;
+      },
+    );
+    chains.set(
+      id,
+      next.then(() => undefined),
+    );
     return next;
   };
 
@@ -209,20 +245,36 @@ function makeDbPersistence(db: ClaudeDb, path: string): Persistence {
     const data = pending;
     pending = undefined;
     if (!data) return;
+    lastData = data;
     const docs = toDocs(data);
-    const ops: Promise<void>[] = [];
+    const ops: Promise<boolean>[] = [];
     for (const [id, body] of Object.entries(docs)) {
       const json = JSON.stringify(body);
       if (known.get(id) === json) continue;
       known.set(id, json);
-      ops.push(enqueue(id, () => col.doc(id).set(body)));
+      ops.push(enqueue(id, () => col.doc(id).set(body), () => known.get(id) === json && known.delete(id)));
     }
     for (const id of [...known.keys()]) {
       if (docs[id]) continue;
+      const json = known.get(id);
       known.delete(id);
-      ops.push(enqueue(id, () => col.doc(id).delete()));
+      ops.push(enqueue(id, () => col.doc(id).delete(), () => json !== undefined && !known.has(id) && known.set(id, json)));
     }
-    await Promise.all(ops);
+    const results = await Promise.all(ops);
+    if (results.every(Boolean)) {
+      failures = 0;
+      return;
+    }
+    failures++;
+    errors.emit("Enregistrement impossible pour le moment : tes dernières modifications seront renvoyées automatiquement.");
+    // Nouvel essai avec les données les plus récentes (3 fois au plus d'affilée).
+    if (failures <= 3 && !pending) {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (!pending && lastData) pending = lastData;
+        void write();
+      }, 3000 * failures);
+    }
   };
 
   return {
@@ -245,6 +297,7 @@ function makeDbPersistence(db: ClaudeDb, path: string): Persistence {
     subscribe(cb) {
       listeners = [...listeners, cb];
     },
+    onError: errors.add,
   };
 }
 

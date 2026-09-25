@@ -5,6 +5,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { betaTool } from "@anthropic-ai/sdk/helpers/beta/json-schema";
+import type { CourseInput } from "../core/courses";
 import { getCapability, type ClaudeSample } from "../lib/claude";
 import { useStore } from "../store/store";
 import { buildContext } from "./context";
@@ -179,16 +180,7 @@ async function askSample(
 
 // ---------- Lecture d'un emploi du temps (photo ou PDF) ----------
 
-export interface ExtractedCourse {
-  jour: number;
-  debut: string;
-  fin: string;
-  matiere: string;
-  enseignant?: string;
-  salle?: string;
-  type?: "cours" | "examen";
-  date?: string;
-}
+export type ExtractedCourse = CourseInput;
 
 const TIMETABLE_PROMPT = `Voici l'emploi du temps d'une semaine de cours d'un étudiant (école Perrimond). Extrais chaque créneau de cours.
 Réponds uniquement avec un tableau JSON, sans texte autour, de la forme :

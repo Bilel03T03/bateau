@@ -6,10 +6,10 @@ import type {
   BlockStatus,
   CalEvent,
   CollectionName,
-  OccurrenceOverride,
   Settings,
   Task,
 } from "../lib/types";
+import { editOccurrence, removeOccurrence, splitKey } from "../core/edits";
 import { planSchedule, type PlanResult } from "../core/planner";
 import { emptyData, normalizeData } from "../data/defaults";
 import { buildDemo } from "../data/demo";
@@ -21,6 +21,8 @@ export interface Toast {
   text: string;
   undo?: boolean;
   tone?: "info" | "warn";
+  /** Action proposée dans la notification (ex. « Replacer »). */
+  action?: { label: string; run: () => void };
 }
 
 interface State {
@@ -59,6 +61,7 @@ export async function boot(): Promise<void> {
   const data = loaded ? normalizeData(loaded, today) : buildDemo(today, nowMinutes());
   useStore.setState({ data, status: "ready", sync: persistence.mode });
   if (!loaded) persistence.save(data);
+  persistence.onError((message) => toast(message, { tone: "warn" }));
   persistence.subscribe((change) => {
     applyingRemote = true;
     useStore.setState((s) => ({ data: normalizeData(applyDocs(s.data, change.docs)) }));
@@ -77,12 +80,15 @@ export async function boot(): Promise<void> {
 // ---------- Mutations ----------
 
 let toastId = 0;
-export function toast(text: string, opts: { undo?: boolean; tone?: Toast["tone"] } = {}) {
+export function toast(text: string, opts: { undo?: boolean; tone?: Toast["tone"]; action?: Toast["action"] } = {}) {
   const t = { id: ++toastId, text, ...opts };
   useStore.setState({ toast: t });
-  setTimeout(() => {
-    if (useStore.getState().toast?.id === t.id) useStore.setState({ toast: null });
-  }, opts.undo ? 6000 : 3500);
+  setTimeout(
+    () => {
+      if (useStore.getState().toast?.id === t.id) useStore.setState({ toast: null });
+    },
+    opts.undo || opts.action ? 7000 : 3500,
+  );
 }
 
 function mutate(fn: (d: AppData) => AppData, opts: { undo?: string } = {}) {
@@ -145,37 +151,14 @@ export function updateSettings(changes: Partial<Settings>) {
 
 // ---------- Occurrences (événements ponctuels ou récurrents) ----------
 
-function splitKey(key: string): { templateId?: string; baseDate?: string; eventId?: string } {
-  const at = key.indexOf("@");
-  if (at > 0 && !key.startsWith("@")) return { templateId: key.slice(0, at), baseDate: key.slice(at + 1) };
-  return { eventId: key };
-}
-
-function withOverride(d: AppData, templateId: string, baseDate: string, ov: OccurrenceOverride): AppData {
-  const tpl = d.recurring[templateId];
-  if (!tpl) return d;
-  const overrides = { ...tpl.overrides, [baseDate]: { ...tpl.overrides[baseDate], ...ov } };
-  return { ...d, recurring: { ...d.recurring, [templateId]: { ...tpl, overrides } } };
-}
-
 /** Modifie une occurrence. Pour un horaire récurrent, seule cette date change. */
 export function updateOccurrence(key: string, changes: Partial<CalEvent>, message?: string) {
-  const { templateId, baseDate, eventId } = splitKey(key);
-  mutate(
-    (d) => {
-      if (templateId && baseDate) {
-        const ov: OccurrenceOverride = {};
-        for (const k of ["date", "start", "end", "room", "title", "placeId"] as const) {
-          if (changes[k] !== undefined) (ov as Record<string, unknown>)[k] = changes[k];
-        }
-        return withOverride(d, templateId, baseDate, ov);
-      }
-      const ev = eventId ? d.events[eventId] : undefined;
-      if (!ev) return d;
-      return { ...d, events: { ...d.events, [ev.id]: { ...ev, ...changes } } };
-    },
-    { undo: message },
-  );
+  mutate((d) => editOccurrence(d, key, changes), { undo: message });
+}
+
+/** Remplace toutes les données d'un coup (modifications groupées), avec possibilité d'annuler. */
+export function commit(next: AppData, message?: string) {
+  mutate(() => next, { undo: message });
 }
 
 /** Déplacement (glisser-déposer) : l'activité est fixée là, puis le reste s'adapte. */
@@ -188,12 +171,9 @@ export function moveOccurrence(key: string, date: string, start: number, end: nu
 }
 
 export function deleteOccurrence(key: string) {
-  const { templateId, baseDate, eventId } = splitKey(key);
-  if (templateId && baseDate) {
-    mutate((d) => withOverride(d, templateId, baseDate, { cancelled: true }), { undo: "Occurrence annulée pour cette date" });
-  } else if (eventId) {
-    remove("events", eventId, "Événement supprimé");
-  }
+  const { templateId, eventId } = splitKey(key);
+  if (templateId) mutate((d) => removeOccurrence(d, key), { undo: "Occurrence annulée pour cette date" });
+  else if (eventId) remove("events", eventId, "Événement supprimé");
   repairAround();
 }
 
@@ -205,7 +185,10 @@ export function repairAround() {
   if (!res.remove.length && !res.add.length) return;
   mutate((cur) => applyPlanTo(cur, res, false));
   const n = res.remove.length;
-  toast(`Planning adapté : ${n} bloc${n > 1 ? "s" : ""} replacé${n > 1 ? "s" : ""} automatiquement`);
+  // « Annuler » revient à l'état d'avant la modification qui a déclenché l'adaptation.
+  toast(`Planning adapté : ${n} bloc${n > 1 ? "s" : ""} replacé${n > 1 ? "s" : ""} automatiquement`, {
+    undo: useStore.getState().undoStack.length > 0,
+  });
 }
 
 function applyPlanTo(d: AppData, res: PlanResult, asPending: boolean): AppData {

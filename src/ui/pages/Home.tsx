@@ -10,7 +10,8 @@ import { sportWeek, weekStats } from "../../core/stats";
 import { addDays, capitalize, diffDays, fmtDateLong, fmtDuration, fmtHours, fmtTime, fromHHMM, mondayOf, relativeDay, toHHMM } from "../../lib/date";
 import { CATEGORIES, MEAL_MODES, MEAL_SLOTS, MEAL_SLOT_ORDER, PRIORITIES, uid, WEEK_TYPES } from "../../lib/meta";
 import type { AppData, CalEvent, MealMode, MealSlot, Occurrence } from "../../lib/types";
-import { completeReminder, removeDemo, setBlockStatus, setDevice, toast, updateSettings, upsert, useStore } from "../../store/store";
+import { completeReminder, removeDemo, setDevice, updateSettings, upsert, useStore } from "../../store/store";
+import { markBlock } from "../actions";
 import { TaskRow } from "../components/rows";
 import { CatChip, Chip, Dots, Icon, Ring } from "../components/ui";
 import { useData, useNow } from "../hooks";
@@ -180,8 +181,7 @@ function AdviceCard({ advice, onClose, onRefresh }: { advice: Advice; onClose: (
             <button
               className="btn btn-primary btn-sm"
               onClick={() => {
-                setBlockStatus(a.key, "fait");
-                toast("Bravo, c'est noté comme fait");
+                markBlock(a.key, "fait");
                 onClose();
               }}
             >
@@ -480,10 +480,10 @@ function CheckIn({ data, today, minutes, wake }: { data: AppData; today: string;
                   {relativeDay(e.date, today)} · {fmtTime(e.start)}–{fmtTime(e.end)}
                 </span>
               </div>
-              <button className="btn btn-soft btn-xs" onClick={() => setBlockStatus(e.id, "fait")}>
+              <button className="btn btn-soft btn-xs" onClick={() => markBlock(e.id, "fait")}>
                 ✓ Fait
               </button>
-              <button className="btn btn-ghost btn-xs" onClick={() => setBlockStatus(e.id, "manque")}>
+              <button className="btn btn-ghost btn-xs" onClick={() => markBlock(e.id, "manque")}>
                 ✗ Manqué
               </button>
             </div>
@@ -703,7 +703,10 @@ function DemoBanner() {
             confirmLabel: "Supprimer les exemples",
             danger: true,
           });
-          if (ok) removeDemo();
+          if (ok) {
+            removeDemo();
+            open({ type: "setup" });
+          }
         }}
       >
         Supprimer les exemples
@@ -713,32 +716,22 @@ function DemoBanner() {
 }
 
 function Onboarding() {
-  const steps: { label: string; detail: string; action: () => void }[] = [
-    { label: "Ton rythme d'alternance", detail: "Indique quand commence ta prochaine semaine d'école.", action: () => go("parametres") },
-    { label: "Tes horaires Auchan", detail: "Ajoute tes créneaux habituels (modifiables semaine par semaine).", action: () => go("auchan") },
-    { label: "Tes cours à Perrimond", detail: "Saisis ta semaine type ou importe une photo/PDF de ton emploi du temps.", action: () => go("perrimond") },
-    { label: "Tes trajets", detail: "Temps moyen domicile → Perrimond, Auchan, salle de sport…", action: () => go("parametres") },
-    { label: "Tes créneaux de sport", detail: "Les horaires de ta box CrossFit et du squash.", action: () => go("sport") },
-  ];
   return (
-    <section className="panel" aria-labelledby="onb-h">
-      <div className="panel-head">
-        <h2 id="onb-h">Démarrer en 5 minutes</h2>
-        <button className="btn btn-ghost btn-sm" onClick={() => updateSettings({ onboarded: true })}>
-          C'est fait
-        </button>
+    <section className="banner" aria-labelledby="onb-h" style={{ borderStyle: "solid" }}>
+      <span style={{ fontSize: 22 }} aria-hidden="true">
+        🧭
+      </span>
+      <div className="grow">
+        <strong id="onb-h">Configure ta vraie semaine</strong>
+        <p className="small muted">Rythme d'alternance, horaires Auchan, cours, trajets et sport : 6 petites étapes, environ 5 minutes. Tout reste modifiable ensuite.</p>
       </div>
-      <div className="list">
-        {steps.map((s, i) => (
-          <div key={s.label} className="item clickable" onClick={s.action}>
-            <span className="chip">{i + 1}</span>
-            <div className="item-main">
-              <span className="item-title">{s.label}</span>
-              <span className="item-meta">{s.detail}</span>
-            </div>
-            <Icon name="right" size={16} />
-          </div>
-        ))}
+      <div className="row">
+        <button className="btn btn-ghost btn-sm" onClick={() => updateSettings({ onboarded: true })}>
+          Plus tard
+        </button>
+        <button className="btn btn-primary btn-sm" onClick={() => open({ type: "setup" })}>
+          Commencer
+        </button>
       </div>
     </section>
   );

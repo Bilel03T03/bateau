@@ -1,7 +1,7 @@
 import { distributeRevision, revisionBlocks, revisionDays, revisionProgress } from "../../core/revisions";
 import { diffDays, fmtDateShort, fmtDuration, fmtTime, relativeDay } from "../../lib/date";
 import type { AppData, Exam } from "../../lib/types";
-import { setBlockStatus } from "../../store/store";
+import { markBlock } from "../actions";
 import { Chip, Empty, Icon, Progress } from "../components/ui";
 import { useData, useNow } from "../hooks";
 import { open } from "../uiStore";
@@ -117,10 +117,10 @@ function ExamCard({ exam, data, today, minutes }: { exam: Exam; data: AppData; t
               <span className="grow">
                 {fmtDateShort(e.date)} {fmtTime(e.start)} · {fmtDuration(e.end - e.start)}
               </span>
-              <button className="btn btn-soft btn-xs" onClick={() => setBlockStatus(e.id, "fait")}>
+              <button className="btn btn-soft btn-xs" onClick={() => markBlock(e.id, "fait")}>
                 ✓ Faite
               </button>
-              <button className="btn btn-ghost btn-xs" onClick={() => setBlockStatus(e.id, "manque")}>
+              <button className="btn btn-ghost btn-xs" onClick={() => markBlock(e.id, "manque")}>
                 ✗ Manquée
               </button>
             </div>

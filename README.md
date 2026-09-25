@@ -27,16 +27,23 @@ L'analyse produit (indispensable, secondaire, écarté, oublié) et l'architectu
 
 ## Premiers pas
 
-L'application démarre avec des **données d'exemple** (semaine Auchan, semaine d'école, partiel, sport…). Quand tu es prêt :
+L'application démarre avec des **données d'exemple** (semaine Auchan, semaine d'école, partiel, sport…). Quand tu es prêt, clique sur **Supprimer les exemples** : la **configuration guidée** s'ouvre et te fait saisir ta vraie semaine en 6 étapes (environ 5 minutes) :
 
-1. **Supprimer les exemples** (bandeau de l'accueil ou Paramètres → Données).
-2. **Paramètres → Rythme d'alternance** : 1 semaine d'école puis 3 semaines Auchan, et la date d'un lundi d'école.
-3. **Auchan → Horaires** : tes créneaux habituels.
-4. **Perrimond → Emploi du temps** : saisis ta semaine type, ou « Importer mon emploi du temps » (photo/PDF).
-5. **Paramètres → Lieux et trajets** : tes temps de trajet moyens.
-6. **Sport** : les créneaux de ta box CrossFit et du squash.
+1. **Toi** : réveil, coucher, sommeil visé.
+2. **Alternance** : 1 semaine d'école puis 3 semaines Auchan, et le prochain lundi d'école.
+3. **Auchan** : tes horaires habituels, jour par jour.
+4. **Cours** : ta semaine type à Perrimond, ou une photo/PDF de l'emploi du temps lue par l'IA.
+5. **Trajets** : domicile ↔ Perrimond, Auchan, salle de sport…
+6. **Sport** : objectifs par semaine et créneaux de ta box.
 
-Ensuite, au quotidien : ajoute en langage naturel dans la barre du haut (ou le bouton + sur téléphone), confirme tes séances d'un clic, et utilise « Réorganiser ma semaine » quand quelque chose change.
+Tu peux la relancer à tout moment depuis Paramètres → Configuration guidée.
+
+Ensuite, au quotidien :
+
+- ajoute en langage naturel dans la barre du haut (ou le bouton + sur téléphone) ;
+- confirme tes séances d'un clic (✓ Fait / ✗ Manqué) : une séance manquée te propose aussitôt de la replacer ;
+- quand ton planning Auchan change, **Auchan → Horaires de la semaine** : tu recopies la semaine en 30 secondes, le reste s'adapte ;
+- utilise « Réorganiser ma semaine » quand quelque chose change.
 
 ## Développement
 

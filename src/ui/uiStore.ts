@@ -40,8 +40,9 @@ export type Editor =
   | { type: "conflict"; conflict: Conflict }
   | { type: "dayplan"; date: string }
   | { type: "weekplan" }
-  | { type: "timetable" }
+  | { type: "timetable"; returnToSetup?: number }
   | { type: "quickadd" }
+  | { type: "setup"; step?: number }
   | { type: "more" };
 
 interface Confirm {

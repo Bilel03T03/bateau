@@ -147,3 +147,18 @@ describe("vues calculées", () => {
     expect(["vert", "orange", "rouge"]).toContain(l.level);
   });
 });
+
+describe("récupération sportive", () => {
+  it("évite deux séances de CrossFit deux jours de suite quand un autre jour convient", () => {
+    const data = buildDemo(TODAY, NOW);
+    // On repart d'une semaine sans sport du tout.
+    for (const e of Object.values(data.events)) if (e.kind === "sport" && e.date >= "2026-09-21") delete data.events[e.id];
+    const r = planSchedule(data, { today: TODAY, nowMin: NOW, mode: "full" });
+    const cf = r.add.filter((e) => e.sport === "crossfit" && e.date <= "2026-09-27").map((e) => e.date).sort();
+    expect(cf.length).toBe(2);
+    const gap = (new Date(cf[1]).getTime() - new Date(cf[0]).getTime()) / 86400000;
+    expect(gap).toBeGreaterThanOrEqual(2);
+    const days = r.add.filter((e) => e.kind === "sport").map((e) => e.date);
+    expect(new Set(days).size).toBe(days.length);
+  });
+});

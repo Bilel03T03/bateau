@@ -60,6 +60,9 @@ Deux contraintes structurent tout le reste :
 7. **Des données d'exemple supprimables en un clic**, et une liste de premiers pas.
 8. **Export / import** de sauvegarde pour ne jamais perdre tes données.
 9. **L'import d'emploi du temps depuis une photo ou un PDF**, puisque Perrimond fournit des PDF.
+10. **Une configuration guidée** pour passer des exemples à ta vraie semaine en quelques minutes.
+11. **Les horaires Auchan semaine par semaine** : dans la grande distribution, le planning change souvent ; on le recopie en 30 secondes sans toucher aux horaires habituels.
+12. **Une séance manquée n'est pas perdue** : dès que tu la marques ✗, l'outil propose de la replacer.
 
 ## 3. Architecture
 
@@ -68,6 +71,9 @@ src/
   lib/        types du modèle, dates, libellés, accès à claude.ai
   core/       moteur pur, sans interface (testé) :
               schedule  alternance + horaires récurrents + exceptions
+              edits     modifications d'occurrences (cette date seulement)
+              shifts    horaires Auchan d'une semaine / horaires habituels
+              courses   semaine type de cours (saisie, import)
               frame     cadre d'une journée : trajets, repas, conflits, créneaux libres
               planner   planification automatique + résolution de conflits
               revisions répartition des révisions
@@ -92,11 +98,12 @@ src/
   - **Page claude.ai** : données dans ton espace privé Claude (`data/users/<ton id>/…`), synchronisées entre ordinateur et téléphone ; assistant IA avec ton compte Claude, sans clé.
   - **Web app installable (GitHub Pages)** : données dans le navigateur (export/import pour changer d'appareil), fonctionne hors connexion, notifications tant que l'app est ouverte ; assistant IA avec une clé API facultative, sinon assistant local.
 - **Stockage découpé** : pour la synchronisation, chaque collection est découpée par mois (événements, sommeil, repas, tâches) afin de rester sous les limites de taille et de ne réécrire que ce qui change.
+- **Pas de perte silencieuse** : si un enregistrement échoue (réseau), tu es prévenu et l'envoi est retenté automatiquement avec la version la plus récente.
 
 ### Algorithme de planification (résumé)
 
 1. Retire les blocs automatiques futurs non commencés (ils seront recalculés).
-2. **Sport** : complète les objectifs de la semaine en testant les créneaux habituels (ou des horaires réalistes), en rejetant tout ce qui crée un conflit de trajet ou de chevauchement, et en pénalisant les jours consécutifs, les journées chargées, les soirées protégées et les séances tardives avant un départ tôt.
+2. **Sport** : complète les objectifs de la semaine en testant les créneaux habituels (ou des horaires réalistes), en rejetant tout ce qui crée un conflit de trajet ou de chevauchement, et en évitant le même sport deux jours de suite, deux sports le même jour, les journées chargées, les soirées protégées et les séances tardives avant un départ tôt.
 3. **Capacité par jour** : maximum de travail perso selon le type de journée (cours / Auchan / libre), réduit après une nuit courte, une fatigue notée ou une grosse journée.
 4. **Révisions** : réparties en séances d'environ 1 h, espacées, un peu plus longues à l'approche de l'examen, la veille limitée à une relecture ; le surplus d'un jour plein passe au lendemain.
 5. **Tâches** : les plus urgentes d'abord, découpées en blocs de 45 à 90 min, avec au moins un jour de marge avant l'échéance.

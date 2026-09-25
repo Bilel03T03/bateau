@@ -10,7 +10,7 @@ import { importAll, loadDemo, mergeEvents, remove, removeDemo, resetAll, setDevi
 import { notificationsSupported, requestNotifications } from "../notifications";
 import { Field, Icon, Seg, Switch } from "../components/ui";
 import { useData } from "../hooks";
-import { askConfirm } from "../uiStore";
+import { askConfirm, open } from "../uiStore";
 
 export function SettingsPage() {
   const data = useData();
@@ -21,6 +21,9 @@ export function SettingsPage() {
           <h1>⚙️ Paramètres</h1>
           <p className="muted">Tout ce qui sert aux calculs automatiques. À régler une fois, puis on n'y touche plus.</p>
         </div>
+        <button className="btn" onClick={() => open({ type: "setup" })}>
+          🧭 Configuration guidée
+        </button>
       </div>
       <div className="grid-2 even">
         <div className="stack">
@@ -552,7 +555,10 @@ function DataSection({ data }: { data: AppData }) {
           <button
             className="btn btn-sm btn-danger"
             onClick={async () => {
-              if (await askConfirm({ title: "Supprimer les exemples ?", text: "Tes propres ajouts sont conservés.", confirmLabel: "Supprimer", danger: true })) removeDemo();
+              if (await askConfirm({ title: "Supprimer les exemples ?", text: "Tes propres ajouts sont conservés.", confirmLabel: "Supprimer", danger: true })) {
+                removeDemo();
+                open({ type: "setup" });
+              }
             }}
           >
             Supprimer les exemples
