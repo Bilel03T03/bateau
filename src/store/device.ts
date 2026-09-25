@@ -1,6 +1,16 @@
 // Préférences propres à cet appareil (jamais synchronisées) : thème, clé API,
 // rappels déjà vus. La clé API ne quitte jamais ce navigateur.
 
+/** Minuteur de concentration en cours (propre à cet appareil). */
+export interface FocusSession {
+  title: string;
+  eventId?: string;
+  startedAt: number;
+  durationMin: number;
+  pausedAt?: number;
+  pausedMs: number;
+}
+
 export interface DevicePrefs {
   theme: "auto" | "clair" | "sombre";
   apiKey: string;
@@ -9,6 +19,7 @@ export interface DevicePrefs {
   dismissed: Record<string, string>;
   notified: Record<string, number>;
   lastPlanningView: "jour" | "semaine" | "mois";
+  focus?: FocusSession;
 }
 
 const KEY = "cap:device:v1";

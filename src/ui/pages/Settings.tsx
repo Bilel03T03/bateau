@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { icsToEvents } from "../../core/ics";
+import { buildIcs } from "../../core/icsExport";
 import { weekTypeOf } from "../../core/schedule";
 import { addDays, DAY_NAMES, fmtDayMonth, fmtDuration, fromHHMM, mondayOf, toHHMM, todayISO } from "../../lib/date";
 import { getCapability, inClaude } from "../../lib/claude";
@@ -549,6 +550,29 @@ function DataSection({ data }: { data: AppData }) {
         }}
       />
       <p className="tiny faint">Import .ics : Google Agenda, Outlook ou l'agenda de l'école. Les événements déjà présents ne sont pas dupliqués.</p>
+      {!inClaude() && (
+        <div className="stack-sm">
+          <button
+            className="btn btn-sm"
+            onClick={() => {
+              const ics = buildIcs(useStore.getState().data, todayISO(), 28);
+              const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "cap-agenda.ics";
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+              toast("Fichier prêt : ouvre-le pour l'ajouter à ton agenda");
+            }}
+          >
+            📲 Exporter vers l'agenda du téléphone (.ics)
+          </button>
+          <p className="tiny faint">
+            Les 4 prochaines semaines, avec une alarme à l'heure de départ et la veille des échéances : ton téléphone te prévient même app fermée. Réimporter le fichier
+            met à jour les événements.
+          </p>
+        </div>
+      )}
       <hr className="sep" />
       <div className="row-wrap">
         {hasDemo ? (

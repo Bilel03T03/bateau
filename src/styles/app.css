@@ -480,18 +480,22 @@ p { margin: 0; }
 @keyframes slide { from { transform: translateX(30px); opacity: 0; } }
 
 .toast {
-  position: fixed; left: 50%; transform: translateX(-50%);
+  position: fixed; left: 16px; right: 16px;
   bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 80;
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px 12px 10px 16px; border-radius: 12px;
   background: var(--ink); color: var(--ink-text);
   box-shadow: var(--shadow-lg); font-size: 14px; font-weight: 520;
-  max-width: calc(100% - 32px);
   animation: rise 0.18s ease-out;
 }
+/* Au-dessus du minuteur quand il est affiché. */
+.app:has(.focusbar) .toast { bottom: calc(210px + env(safe-area-inset-bottom, 0px)); }
 .toast.warn { background: var(--warn-soft); color: var(--text); border: 1px solid var(--warn); }
 .toast button { background: none; border: 0; color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
-@media (min-width: 900px) { .toast { bottom: 24px; left: calc(50% + var(--side) / 2); } }
+@media (min-width: 900px) {
+  .toast { bottom: 24px; right: auto; left: calc(50% + var(--side) / 2); transform: translateX(-50%); width: max-content; max-width: min(560px, calc(100% - var(--side) - 48px)); }
+  .app:has(.focusbar) .toast { bottom: 170px; }
+}
 
 /* ---------- Ajout rapide ---------- */
 
@@ -741,3 +745,102 @@ kbd { font: 11.5px var(--font); padding: 1px 5px; border-radius: 5px; border: 1p
 .step[aria-selected="true"] .step-n { background: var(--ink-text); color: var(--ink); }
 .step.done .step-n { background: var(--good-soft); color: var(--good); }
 @media (max-width: 560px) { .step .step-t { display: none; } .step[aria-selected="true"] .step-t { display: inline; } }
+
+/* ---------- Tableau de bord : brief, semaine, rythme ---------- */
+
+.hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+@media (max-width: 640px) { .hero-side { align-items: flex-start; } }
+.load-pill {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 28px; max-width: 100%; padding: 4px 12px; border-radius: 999px; text-align: left;
+  font-size: 13px; font-weight: 600; text-decoration: none; color: var(--text);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.load-pill[data-level="vert"] { background: var(--good-soft); border-color: transparent; }
+.load-pill[data-level="orange"] { background: var(--warn-soft); border-color: transparent; }
+.load-pill[data-level="rouge"] { background: var(--bad-soft); border-color: transparent; }
+
+.top-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 1000px) { .top-grid { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); } }
+.cta-stack { display: flex; flex-direction: column; gap: 10px; }
+.cta-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 380px) { .cta-pair { grid-template-columns: minmax(0, 1fr); } }
+.cta-pair .btn-big { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+.brief {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: 18px 18px 10px; display: flex; flex-direction: column; gap: 6px;
+  border-top: 4px solid var(--cat, var(--ink));
+}
+.brief-title { font-size: 24px; font-weight: 650; line-height: 1.2; }
+.brief-sub { color: var(--text-2); font-size: 14.5px; font-variant-numeric: tabular-nums; }
+.brief-lines { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; }
+.brief-lines li { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14.5px; line-height: 1.4; }
+.brief-lines .ic { width: 22px; text-align: center; flex: none; }
+.brief-lines .txt { background: none; border: 0; padding: 0; text-align: left; color: inherit; font: inherit; }
+.brief-lines button.txt:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-strong); }
+.brief-lines li[data-tone="bad"] .txt { color: var(--bad); font-weight: 580; }
+.brief-lines li[data-tone="warn"] .txt { font-weight: 580; }
+.brief-lines li[data-tone="good"] .txt { color: var(--good); }
+
+.week-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.tile {
+  position: relative; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  padding: 10px 10px 8px; border-radius: 12px; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text);
+  overflow: hidden;
+}
+.tile::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--tile, var(--line-strong)); }
+.tile[data-kind="travail"] { --tile: var(--c-auchan); }
+.tile[data-kind="cours"] { --tile: var(--c-ecole); }
+.tile[data-kind="libre"] { --tile: var(--c-sport); }
+.tile[data-kind="conges"] { --tile: var(--c-perso); }
+.tile:hover { background: var(--surface-2); }
+.tile[aria-current="date"] { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+.tile.past { opacity: 0.6; }
+.tile .t-day { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); font-weight: 600; }
+.tile .t-day b { color: var(--text); font-size: 15px; letter-spacing: 0; }
+.tile .t-label { font-weight: 620; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .t-hours { font-size: 12px; color: var(--text-2); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .t-icons { font-size: 12px; min-height: 17px; display: flex; gap: 2px; flex-wrap: wrap; }
+.tile .t-bar { height: 4px; border-radius: 4px; background: var(--surface-3); overflow: hidden; margin-top: 2px; }
+.tile .t-bar i { display: block; height: 100%; border-radius: inherit; background: var(--text-3); }
+.tile .t-bar[data-level="charge"] i { background: var(--bad); }
+@media (max-width: 700px) {
+  .week-strip { gap: 4px; }
+  .tile { padding: 8px 4px 6px; align-items: center; text-align: center; }
+  .tile .t-name, .tile .t-hours { display: none; }
+  .tile .t-label { font-size: 16px; }
+  .tile .t-day { font-size: 10px; display: flex; flex-direction: column; align-items: center; }
+  .tile .t-icons { justify-content: center; font-size: 11px; }
+  .tile .t-bar { width: 100%; }
+}
+
+.pace { font-size: 12px; font-weight: 600; margin-top: 2px; color: var(--text-2); }
+.pace[data-tone="good"] { color: var(--good); }
+.pace[data-tone="warn"] { color: var(--warn); }
+.pace[data-tone="bad"] { color: var(--bad); }
+
+/* ---------- Minuteur de concentration ---------- */
+
+.focusbar {
+  position: fixed; z-index: 40; left: 12px; right: 12px;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main time" "actions actions";
+  gap: 8px 12px; align-items: center;
+  padding: 12px 14px 14px; border-radius: 16px;
+  background: var(--ink); color: var(--ink-text); box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.focusbar .focus-main { grid-area: main; min-width: 0; display: flex; flex-direction: column; }
+.focusbar .focus-title { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; font-weight: 600; }
+.focusbar .focus-name { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.focusbar .focus-time { grid-area: time; font-family: var(--font-display); font-size: 30px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.focusbar .focus-actions { grid-area: actions; display: flex; gap: 8px; justify-content: flex-end; }
+.focusbar .btn { background: transparent; color: inherit; border-color: color-mix(in srgb, var(--ink-text) 28%, transparent); }
+.focusbar .btn-primary { background: var(--ink-text); color: var(--ink); border-color: var(--ink-text); }
+.focusbar .focus-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: color-mix(in srgb, var(--ink-text) 18%, transparent); }
+.focusbar .focus-progress i { display: block; height: 100%; background: var(--c-sport); }
+.focusbar[data-done="true"] .focus-time { color: var(--c-sport); }
+@media (min-width: 900px) {
+  .focusbar { left: auto; right: 24px; bottom: 24px; width: 360px; }
+}

@@ -73,3 +73,18 @@ describe("divers", () => {
     expect(l.level).toBe("vert");
   });
 });
+
+describe("export vers l'agenda du téléphone", async () => {
+  const { buildIcs } = await import("../src/core/icsExport");
+  it("produit un fichier .ics relisible avec alarmes de départ", () => {
+    const data = buildDemo(TODAY, 480);
+    const ics = buildIcs(data, TODAY, 14, new Date(Date.UTC(2026, 8, 24, 8, 0)));
+    expect(ics.startsWith("BEGIN:VCALENDAR")).toBe(true);
+    expect(ics.split("\r\n").every((l) => l.length <= 75)).toBe(true);
+    expect(ics).toContain("TRIGGER:-PT25M"); // départ pour Auchan
+    expect(ics).toContain("DTSTART;VALUE=DATE:");
+    // Relu par notre propre import : les mêmes événements sont reconnus comme doublons.
+    const again = icsToEvents(ics, data, TODAY);
+    expect(again.events.filter((e) => !e.title.startsWith("📌") && !e.title.startsWith("📝") && !e.title.startsWith("🗂️"))).toHaveLength(0);
+  });
+});

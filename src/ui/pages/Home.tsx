@@ -3,16 +3,19 @@ import { computeAlerts } from "../../core/alerts";
 import { buildDayPlan } from "../../core/dayPlan";
 import { sleepDuration, sleepOn } from "../../core/energy";
 import { buildFrame } from "../../core/frame";
-import { weekLoad } from "../../core/load";
+import { buildBrief, type Brief } from "../../core/brief";
+import { weekLoad, type WeekLoad } from "../../core/load";
 import { whatNow, type Advice } from "../../core/nowAdvisor";
 import { weekTypeOf } from "../../core/schedule";
-import { sportWeek, weekStats } from "../../core/stats";
+import { sportPace, sportWeek, weekStats, type Pace } from "../../core/stats";
 import { addDays, capitalize, diffDays, fmtDateLong, fmtDuration, fmtHours, fmtTime, fromHHMM, mondayOf, relativeDay, toHHMM } from "../../lib/date";
 import { CATEGORIES, MEAL_MODES, MEAL_SLOTS, MEAL_SLOT_ORDER, PRIORITIES, uid, WEEK_TYPES } from "../../lib/meta";
 import type { AppData, CalEvent, MealMode, MealSlot, Occurrence } from "../../lib/types";
-import { completeReminder, removeDemo, setDevice, updateSettings, upsert, useStore } from "../../store/store";
+import { commit, completeReminder, get, removeDemo, setDevice, updateSettings, upsert, useStore } from "../../store/store";
 import { markBlock } from "../actions";
 import { TaskRow } from "../components/rows";
+import { WeekStrip } from "../components/WeekStrip";
+import { startFocus } from "../components/FocusBar";
 import { CatChip, Chip, Dots, Icon, Ring } from "../components/ui";
 import { useData, useNow } from "../hooks";
 import { askConfirm, go, open } from "../uiStore";
@@ -25,6 +28,8 @@ export function Home() {
 
   const frame = useMemo(() => buildFrame(data, today), [data, today, slot]);
   const alerts = useMemo(() => computeAlerts(data, today, minutes), [data, today, slot]);
+  const brief = useMemo(() => buildBrief(data, new Date()), [data, today, slot]);
+  const load = useMemo(() => weekLoad(data, today, minutes), [data, today, slot]);
   const dismissed = useStore((s) => s.device.dismissed);
   const visibleAlerts = alerts.filter((a) => !dismissed[a.id]);
   const hasDemo = useMemo(() => Object.values(data.tasks).some((t) => t.demo) || Object.values(data.recurring).some((r) => r.demo), [data]);
@@ -57,57 +62,85 @@ export function Home() {
             {data.settings.name ? ` · Bonjour ${data.settings.name}` : ""}
           </div>
         </div>
-        <div className="row-wrap">
-          <span className="weektype" data-cat={weekType === "ecole" ? "ecole" : weekType === "entreprise" ? "auchan" : "perso"}>
-            {WEEK_TYPES[weekType].label}
-          </span>
-          {nextSwitch && (
-            <span className="small muted">
-              {WEEK_TYPES[nextSwitch.type].label.toLowerCase()} dans {nextSwitch.days} jour{nextSwitch.days > 1 ? "s" : ""}
+        <div className="hero-side">
+          <div className="row-wrap">
+            <span className="weektype" data-cat={weekType === "ecole" ? "ecole" : weekType === "entreprise" ? "auchan" : "perso"}>
+              {WEEK_TYPES[weekType].label}
             </span>
-          )}
+            {nextSwitch && (
+              <span className="small muted">
+                {WEEK_TYPES[nextSwitch.type].label.toLowerCase()} dans {nextSwitch.days} jour{nextSwitch.days > 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <button
+            className="load-pill"
+            data-level={load.level}
+            title={load.reasons.join(" · ")}
+            onClick={() => document.getElementById("semaine")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+          >
+            <span aria-hidden="true">{load.emoji}</span> {load.label}
+          </button>
         </div>
       </div>
 
       {hasDemo ? <DemoBanner /> : !data.settings.onboarded ? <Onboarding /> : null}
 
-      <div className="cta-row">
-        <button className="btn btn-big btn-primary" onClick={() => setAdvice(whatNow(data, new Date()))}>
-          <span className="big-icon">👉</span>
-          <span>
-            <strong>Que dois-je faire maintenant ?</strong>
-            <span className="small" style={{ opacity: 0.75 }}>
-              Une seule action, selon l'heure, tes échéances et ta forme
-            </span>
-          </span>
-        </button>
-        <button className="btn btn-big" onClick={() => open({ type: "dayplan", date: today })}>
-          <span className="big-icon">🗓️</span>
-          <span>
-            <strong>Organiser ma journée</strong>
-            <span className="small muted">Réveil, trajets, repas, travail, temps libre</span>
-          </span>
-        </button>
-        <button className="btn btn-big" onClick={() => open({ type: "weekplan" })}>
-          <span className="big-icon">✨</span>
-          <span>
-            <strong>Planifier ma semaine</strong>
-            <span className="small muted">Sport, révisions et tâches placés pour toi</span>
-          </span>
-        </button>
-      </div>
-
-      {advice && <AdviceCard advice={advice} onClose={() => setAdvice(null)} onRefresh={() => setAdvice(whatNow(useStore.getState().data, new Date()))} />}
-
-      <div className="grid-2">
+      <div className="top-grid">
+        <BriefCard brief={brief} />
         <div className="stack">
           {next || current ? (
             <NextEvent o={next} current={current} data={data} minutes={minutes} frameLegs={frame.legs} />
           ) : (
             <div className="panel">
+              <span className="label">Prochain événement</span>
               <p className="muted">Plus rien de prévu aujourd'hui. Profite de ton temps libre.</p>
             </div>
           )}
+          <div className="cta-stack">
+            <button className="btn btn-big btn-primary" onClick={() => setAdvice(whatNow(data, new Date()))}>
+              <span className="big-icon">👉</span>
+              <span>
+                <strong>Que dois-je faire maintenant ?</strong>
+                <span className="small" style={{ opacity: 0.75 }}>
+                  Une seule action, selon l'heure, tes échéances et ta forme
+                </span>
+              </span>
+            </button>
+            <div className="cta-pair">
+              <button className="btn btn-big" onClick={() => open({ type: "dayplan", date: today })}>
+                <span className="big-icon">🗓️</span>
+                <span>
+                  <strong>Organiser ma journée</strong>
+                  <span className="small muted">Réveil, trajets, repas, temps libre</span>
+                </span>
+              </button>
+              <button className="btn btn-big" onClick={() => open({ type: "weekplan" })}>
+                <span className="big-icon">✨</span>
+                <span>
+                  <strong>Planifier ma semaine</strong>
+                  <span className="small muted">Sport, révisions, tâches</span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {advice && <AdviceCard advice={advice} onClose={() => setAdvice(null)} onRefresh={() => setAdvice(whatNow(useStore.getState().data, new Date()))} />}
+
+      <section className="section" aria-labelledby="strip-h">
+        <div className="section-head">
+          <h2 id="strip-h">La semaine en un coup d'œil</h2>
+          <button className="btn btn-ghost btn-sm" onClick={() => go("planning")}>
+            Planning <Icon name="right" size={16} />
+          </button>
+        </div>
+        <WeekStrip data={data} monday={mondayOf(today)} today={today} />
+      </section>
+
+      <div className="grid-2">
+        <div className="stack">
           <TodayTimeline data={data} today={today} minutes={minutes} slot={slot} />
           <MealsToday data={data} today={today} />
         </div>
@@ -128,8 +161,41 @@ export function Home() {
         </div>
       </div>
 
-      <ThisWeek data={data} today={today} minutes={minutes} slot={slot} />
+      <ThisWeek data={data} today={today} load={load} />
     </>
+  );
+}
+
+// ---------- Brief du jour ----------
+
+function BriefCard({ brief }: { brief: Brief }) {
+  const kind = brief.title.includes("Auchan") ? "auchan" : brief.title.includes("cours") ? "ecole" : "perso";
+  return (
+    <section className="brief" data-cat={kind} aria-labelledby="brief-h">
+      <span className="label">{brief.mode === "soir" ? "🌙 Pour demain" : "Brief du jour"}</span>
+      <h2 id="brief-h" className="brief-title">
+        {brief.title}
+      </h2>
+      {brief.subtitle && <p className="brief-sub">{brief.subtitle}</p>}
+      {brief.lines.length > 0 && (
+        <ul className="brief-lines">
+          {brief.lines.map((l, i) => (
+            <li key={i} data-tone={l.tone}>
+              <span className="ic" aria-hidden="true">
+                {l.icon}
+              </span>
+              {l.route ? (
+                <button className="txt" onClick={() => go(l.route as never)}>
+                  {l.text}
+                </button>
+              ) : (
+                <span className="txt">{l.text}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -152,7 +218,16 @@ function AdviceCard({ advice, onClose, onRefresh }: { advice: Advice; onClose: (
       origin: "manuel",
       ...extra,
     };
-    upsert("events", ev, `C'est parti : ${title} jusqu'à ${fmtTime(ev.end)}`);
+    // Les blocs automatiques prévus plus tard aujourd'hui pour la même tâche ou le même examen
+    // font doublon : on les retire (ils seront replacés si besoin à la prochaine planification).
+    const cur = get();
+    const events = { ...cur.events, [ev.id]: ev };
+    for (const e of Object.values(cur.events)) {
+      const same = (ev.taskId && e.taskId === ev.taskId) || (ev.examId && e.examId === ev.examId);
+      if (same && e.origin === "auto" && e.date === today && e.start > minutes && e.status !== "fait") delete events[e.id];
+    }
+    commit({ ...cur, events }, `C'est parti : ${title} jusqu'à ${fmtTime(ev.end)}`);
+    startFocus(title, ev.end - ev.start, ev.id);
     onClose();
   };
   const a = advice.action;
@@ -177,9 +252,22 @@ function AdviceCard({ advice, onClose, onRefresh }: { advice: Advice; onClose: (
               Démarrer {fmtDuration(a.minutes)}
             </button>
           )}
-          {a?.kind === "block" && (
+          {a?.kind === "block" && data.events[a.key] && (
             <button
               className="btn btn-primary btn-sm"
+              onClick={() => {
+                const ev = data.events[a.key];
+                const remaining = ev.date === today && ev.start <= minutes ? ev.end - minutes : ev.end - ev.start;
+                startFocus(ev.title, Math.max(5, remaining), ev.id);
+                onClose();
+              }}
+            >
+              ▶ Lancer le minuteur
+            </button>
+          )}
+          {a?.kind === "block" && (
+            <button
+              className="btn btn-sm"
               onClick={() => {
                 markBlock(a.key, "fait");
                 onClose();
@@ -564,10 +652,9 @@ function ImportantTasks({ data, today }: { data: AppData; today: string }) {
 
 // ---------- Cette semaine ----------
 
-function ThisWeek({ data, today, minutes, slot }: { data: AppData; today: string; minutes: number; slot: number }) {
+function ThisWeek({ data, today, load }: { data: AppData; today: string; load: WeekLoad }) {
   const monday = mondayOf(today);
   const stats = useMemo(() => weekStats(data, monday), [data, monday]);
-  const load = useMemo(() => weekLoad(data, today, minutes), [data, today, slot]);
   const sport = useMemo(() => sportWeek(data, monday), [data, monday]);
   const sunday = addDays(monday, 6);
   const tasks = Object.values(data.tasks);
@@ -589,7 +676,7 @@ function ThisWeek({ data, today, minutes, slot }: { data: AppData; today: string
     .slice(0, 6);
 
   return (
-    <section className="section" aria-labelledby="week-h">
+    <section className="section" id="semaine" aria-labelledby="week-h">
       <div className="section-head">
         <h2 id="week-h">Cette semaine</h2>
         <button className="btn btn-ghost btn-sm" onClick={() => go("stats")}>
@@ -614,6 +701,7 @@ function ThisWeek({ data, today, minutes, slot }: { data: AppData; today: string
                 {r.done}/{r.target.perWeek} fait{r.done > 1 ? "es" : "e"}
                 {r.planned ? ` · ${r.planned} prévue${r.planned > 1 ? "s" : ""}` : ""}
               </div>
+              <PaceLabel pace={sportPace(r, today, monday)} />
             </div>
           </div>
         ))}
@@ -734,5 +822,14 @@ function Onboarding() {
         </button>
       </div>
     </section>
+  );
+}
+
+function PaceLabel({ pace }: { pace: Pace }) {
+  return (
+    <div className="pace" data-tone={pace.tone}>
+      {pace.tone === "good" ? "✓ " : pace.tone === "bad" ? "✗ " : pace.tone === "warn" ? "⏳ " : ""}
+      {pace.label}
+    </div>
   );
 }

@@ -63,6 +63,9 @@ Deux contraintes structurent tout le reste :
 10. **Une configuration guidée** pour passer des exemples à ta vraie semaine en quelques minutes.
 11. **Les horaires Auchan semaine par semaine** : dans la grande distribution, le planning change souvent ; on le recopie en 30 secondes sans toucher aux horaires habituels.
 12. **Une séance manquée n'est pas perdue** : dès que tu la marques ✗, l'outil propose de la replacer.
+13. **Un brief du jour qui répond aux questions du matin** (où, quand, départ, sport, révisions, priorité, à préparer), et qui prépare le lendemain le soir.
+14. **Le rythme des objectifs** : savoir mercredi si le CrossFit de la semaine est encore tenable, pas seulement dimanche.
+15. **Des notifications même app fermée** grâce à l'export vers l'agenda du téléphone (version web).
 
 ## 3. Architecture
 
@@ -74,6 +77,9 @@ src/
               edits     modifications d'occurrences (cette date seulement)
               shifts    horaires Auchan d'une semaine / horaires habituels
               courses   semaine type de cours (saisie, import)
+              brief     brief du jour / du lendemain
+              weekView  tuiles de la semaine
+              icsExport export vers l'agenda du téléphone
               frame     cadre d'une journée : trajets, repas, conflits, créneaux libres
               planner   planification automatique + résolution de conflits
               revisions répartition des révisions
@@ -112,6 +118,6 @@ src/
 
 ## 4. Limites connues de la V1
 
-- Les notifications ne fonctionnent que lorsque l'app est ouverte (un service de notifications push demanderait un serveur).
+- Les notifications du navigateur ne fonctionnent que lorsque l'app est ouverte (un service de notifications push demanderait un serveur). Dans la version web, l'export vers l'agenda du téléphone contourne cette limite ; la page claude.ai ne permet pas de télécharger un fichier calendrier.
 - La synchronisation automatique entre appareils n'existe que dans la page claude.ai ; la version web utilise l'export/import.
 - Dans claude.ai, l'import d'emploi du temps accepte les images (capture d'écran d'un PDF) ; la version web avec clé API accepte aussi directement les PDF.

@@ -1,4 +1,4 @@
-import { addDays, firstOfMonth, mondayOf } from "../lib/date";
+import { addDays, diffDays, firstOfMonth, mondayOf } from "../lib/date";
 import type { AppData, Goal, SportTarget, Task } from "../lib/types";
 import { averageSleep } from "./energy";
 import { occurrencesBetween } from "./schedule";
@@ -141,4 +141,28 @@ export function taskProgress(task: Task): number {
   if (task.subtasks.length) return Math.round((task.subtasks.filter((s) => s.done).length / task.subtasks.length) * 100);
   if (!task.estimateMin) return 0;
   return Math.min(95, Math.round((task.spentMin / task.estimateMin) * 100));
+}
+
+export type PaceStatus = "atteint" | "prevu" | "dans_les_temps" | "en_retard" | "compromis";
+
+export interface Pace {
+  status: PaceStatus;
+  label: string;
+  tone: "good" | "warn" | "bad" | "neutral";
+}
+
+/**
+ * Où en est un objectif sportif de la semaine, compte tenu des jours restants
+ * (au plus une séance d'un même sport par jour).
+ */
+export function sportPace(row: SportWeekRow, today: string, monday: string): Pace {
+  const sunday = addDays(monday, 6);
+  const daysLeft = today > sunday ? 0 : today < monday ? 7 : diffDays(today, sunday) + 1;
+  const missing = row.target.perWeek - row.done - row.planned;
+  if (row.done >= row.target.perWeek) return { status: "atteint", label: "Objectif atteint", tone: "good" };
+  if (missing <= 0) return { status: "prevu", label: "Le reste est prévu", tone: "good" };
+  if (missing > daysLeft) return { status: "compromis", label: "Objectif compromis cette semaine", tone: "bad" };
+  if (daysLeft <= missing + 1)
+    return { status: "en_retard", label: `À caser d'ici dimanche (${daysLeft} jour${daysLeft > 1 ? "s" : ""})`, tone: "warn" };
+  return { status: "dans_les_temps", label: `Encore ${daysLeft} jours pour la faire`, tone: "neutral" };
 }

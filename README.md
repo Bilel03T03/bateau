@@ -4,7 +4,14 @@ Tableau de bord personnel pour un étudiant en alternance : **école (Perrimond)
 
 On l'ouvre le matin et on sait tout de suite où être, à quelle heure, quoi faire en priorité, et si on est en retard sur ses objectifs.
 
-- 🏠 **Accueil** : heure, prochain événement avec l'heure de départ, planning du jour, rappels, tâches importantes, résumé de la semaine et indicateur 🟢🟠🔴.
+- 🏠 **Accueil** :
+  - **brief du jour** : où, quand, départ et retour, sport, travail perso, examen proche, priorité, choses à préparer ; le soir, il bascule sur demain ;
+  - prochain événement avec l'heure de départ ;
+  - **la semaine en un coup d'œil** : une tuile par jour (école / Auchan / libre, sport, examens, échéances, conflits, charge) ;
+  - planning du jour, rappels, tâches importantes ;
+  - objectifs sportifs avec leur rythme (« dans les temps », « à caser d'ici dimanche », « compromis ») ;
+  - indicateur 🟢🟠🔴.
+- 🎯 **Minuteur de concentration** : lancé depuis « Que dois-je faire maintenant ? » ou un bloc du planning, visible sur toutes les pages ; « C'est fait » valide le bloc.
 - 👉 **Que dois-je faire maintenant ?** : une seule action, selon l'heure, le prochain départ, les échéances et la fatigue.
 - 🗓️ **Organiser ma journée** : réveil, trajets, cours/travail, repas, sport, révisions, temps libre, coucher.
 - ✨ **Planifier / réorganiser ma semaine** : sport manquant, révisions réparties, tâches urgentes, temps libre protégé.
@@ -13,6 +20,8 @@ On l'ouvre le matin et on sait tout de suite où être, à quelle heure, quoi fa
 - 🎓 Perrimond, 💼 Auchan, 🏋️ Sport et sommeil, 📚 Révisions, 🎯 Objectifs, 📊 Statistiques et bilan du dimanche.
 - ✨ **Assistant IA** : « Trouve-moi un moment pour mon deuxième CrossFit », « J'ai un examen vendredi et je n'ai rien révisé », « Ma semaine est trop chargée »… Il propose, tu valides.
 - 📷 **Import de l'emploi du temps** depuis une photo ou un PDF.
+- 📲 **Export vers l'agenda du téléphone** (version web) : alarmes à l'heure de départ et la veille des échéances, même app fermée.
+- ⌨️ Raccourcis : `/` pour ajouter, `a` pour l'assistant.
 
 L'analyse produit (indispensable, secondaire, écarté, oublié) et l'architecture sont dans [`docs/ANALYSE.md`](docs/ANALYSE.md).
 

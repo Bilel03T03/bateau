@@ -7,7 +7,7 @@ import { defaultHoursFor } from "../core/revisions";
 import { fmtTime, nowMinutes, relativeDay, todayISO } from "../lib/date";
 import { CATEGORIES, uid } from "../lib/meta";
 import type { CalEvent, Exam, Task } from "../lib/types";
-import { applyPlan, get, setBlockStatus, toast, upsert } from "../store/store";
+import { applyPlan, get, setBlockStatus, setTaskStatus, toast, upsert } from "../store/store";
 import type { BlockStatus } from "../lib/types";
 import { open } from "./uiStore";
 
@@ -90,7 +90,15 @@ export function markBlock(key: string, status: BlockStatus) {
   setBlockStatus(key, status);
   if (!ev) return;
   if (status === "fait") {
-    toast(ev.kind === "sport" ? `Bravo, ${ev.title} comptée dans ta semaine 💪` : `« ${ev.title} » : c'est noté`);
+    const task = ev.taskId ? get().tasks[ev.taskId] : undefined;
+    if (task && task.status !== "termine" && task.spentMin >= task.estimateMin) {
+      // Le temps prévu est atteint : on propose de clore la tâche (les blocs suivants disparaissent).
+      toast(`Temps prévu atteint pour « ${task.title} ». Terminée ?`, {
+        action: { label: "Oui, terminée", run: () => setTaskStatus(task.id, "termine") },
+      });
+    } else {
+      toast(ev.kind === "sport" ? `Bravo, ${ev.title} comptée dans ta semaine 💪` : `« ${ev.title} » : c'est noté`);
+    }
   } else if (status === "manque") {
     toast(ev.kind === "sport" ? `${ev.title} manquée : on la replace ?` : `Bloc manqué : on replace ce temps de travail ?`, {
       action: { label: "Replacer", run: () => open({ type: "weekplan" }) },

@@ -5,6 +5,7 @@ import { addDays, fmtDateLong, fromHHMM, toHHMM, todayISO } from "../../lib/date
 import { BLOCK_STATUS, CATEGORIES, CATEGORY_ORDER, KINDS, uid } from "../../lib/meta";
 import type { AppData, BlockStatus, CalEvent, Category, EventKind, Occurrence, WeekType } from "../../lib/types";
 import { deleteOccurrence, repairAround, setBlockStatus, updateOccurrence, upsert } from "../../store/store";
+import { startFocus } from "../components/FocusBar";
 import { Dots, Field, Seg, Sheet, Switch } from "../components/ui";
 import { useData } from "../hooks";
 import { close, open } from "../uiStore";
@@ -132,6 +133,17 @@ export function EventEditor({ eventKey, draft }: { eventKey?: string; draft?: Pa
               }}
             >
               {existing.recurring ? "Annuler ce jour-là" : "Supprimer"}
+            </button>
+          )}
+          {existing && !existing.recurring && (kind === "revision" || kind === "tache") && existing.status !== "fait" && (
+            <button
+              className="btn"
+              onClick={() => {
+                startFocus(existing.title, existing.end - existing.start, existing.key);
+                close();
+              }}
+            >
+              ▶ Démarrer
             </button>
           )}
           <button className="btn btn-ghost" onClick={close}>

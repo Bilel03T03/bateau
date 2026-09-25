@@ -79,7 +79,7 @@ export function QuickAdd({ autoFocus, onDone }: { autoFocus?: boolean; onDone?: 
         className="quick-input"
         value={text}
         autoFocus={autoFocus}
-        placeholder="Ajouter… ex. « Préparer présentation stratégie commerciale vendredi »"
+        placeholder="Ajouter… ex. « Préparer présentation stratégie commerciale vendredi »  ( / )"
         aria-label="Ajout rapide"
         onFocus={() => setFocused(true)}
         onChange={(e) => {

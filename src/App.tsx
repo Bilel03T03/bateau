@@ -3,6 +3,7 @@ import { weekTypeOf } from "./core/schedule";
 import { WEEK_TYPES } from "./lib/meta";
 import { useStore, undo } from "./store/store";
 import { Assistant } from "./ui/assistant/Assistant";
+import { FocusBar } from "./ui/components/FocusBar";
 import { Icon } from "./ui/components/ui";
 import { EditorHost } from "./ui/editors/EditorHost";
 import { useData, useNow } from "./ui/hooks";
@@ -50,6 +51,7 @@ export function App() {
   const { today } = useNow(60_000);
   useTheme();
   useNotifications();
+  useShortcuts();
 
   const openTasks = useMemo(
     () => Object.values(data.tasks).filter((t) => t.status !== "termine" && t.deadline && t.deadline <= today).length,
@@ -166,6 +168,7 @@ export function App() {
         </button>
       </nav>
 
+      <FocusBar />
       <EditorHost />
       <Assistant />
       <ConfirmHost />
@@ -187,6 +190,31 @@ export function App() {
       )}
     </div>
   );
+}
+
+/** Raccourcis clavier : « / » pour l'ajout rapide, « a » pour l'assistant. */
+function useShortcuts() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.metaKey || e.ctrlKey || e.altKey || el.closest("input, textarea, select, [contenteditable]")) return;
+      if (useUI.getState().editor || useUI.getState().assistant) return;
+      if (e.key === "/") {
+        const input = document.querySelector<HTMLInputElement>(".topbar .quick-input");
+        if (input && input.offsetParent) {
+          e.preventDefault();
+          input.focus();
+        } else {
+          open({ type: "quickadd" });
+        }
+      } else if (e.key === "a") {
+        e.preventDefault();
+        openAssistant();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 }
 
 function ConfirmHost() {
